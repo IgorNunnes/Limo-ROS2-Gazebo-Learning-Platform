@@ -34,6 +34,25 @@ source install/setup.bash
 ros2 launch limo_description limo_diff_fortress.launch.py
 ```
 
+The educational RoboCup@Work-style arena is available with:
+
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch limo_description limo_atwork_fortress.launch.py
+```
+
+The first arena version uses a 6 m x 4 m mat, 30 cm physical walls, 0.8 m x 0.5 m workstations,
+0/5/10/15 cm service-area heights, a 70 cm rotating-table placeholder, 2B containers, a shelf,
+green tape markers, and physical obstacles while preserving rulebook-style 0.8 m navigation paths.
+
+For headless automated tests in this arena:
+
+```bash
+ros2 launch limo_description limo_atwork_fortress.launch.py \
+  gz_args:="-r -s $(ros2 pkg prefix limo_description)/share/limo_description/worlds/limo_atwork_educational.sdf"
+```
+
 Useful ROS topics:
 
 - `/cmd_vel`: send `geometry_msgs/msg/Twist` commands to the differential drive.
