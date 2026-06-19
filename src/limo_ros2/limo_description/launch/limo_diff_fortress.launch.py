@@ -74,7 +74,7 @@ def generate_launch_description():
         ],
         remappings=[
             ('/model/limo/cmd_vel', '/cmd_vel'),
-            ('/model/limo/tf', '/tf'),
+            ('/model/limo/tf', '/gz_tf'),
             ('/world/limo_world/model/limo/joint_state', '/joint_states'),
         ],
         output='screen',
@@ -87,6 +87,7 @@ def generate_launch_description():
         parameters=[{
             'odom_frame': 'odom',
             'base_frame': 'base_footprint',
+            'input_tf_topic': 'gz_tf',
             'use_sim_time': True,
         }],
     )

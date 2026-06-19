@@ -42,6 +42,22 @@ source install/setup.bash
 ros2 launch limo_description limo_atwork_fortress.launch.py
 ```
 
+The integrated work-scenario launch starts Gazebo Fortress, the differential Limo, the ROS/Gazebo
+bridges, Cartographer SLAM, and RViz configured for navigation:
+
+```bash
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch limo_car diff_limo_work_scenario.launch.py
+```
+
+Useful launch switches:
+
+```bash
+ros2 launch limo_car diff_limo_work_scenario.launch.py rviz:=false
+ros2 launch limo_car diff_limo_work_scenario.launch.py slam:=false
+```
+
 The first arena version uses a 6 m x 4 m mat, 30 cm physical walls, 0.8 m x 0.5 m workstations,
 0/5/10/15 cm service-area heights, a 70 cm rotating-table placeholder, 2B containers, a shelf,
 green tape markers, and physical obstacles while preserving rulebook-style 0.8 m navigation paths.

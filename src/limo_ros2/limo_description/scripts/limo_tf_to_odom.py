@@ -2,8 +2,10 @@
 import math
 
 import rclpy
+from geometry_msgs.msg import TransformStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
+from tf2_ros import TransformBroadcaster
 from tf2_msgs.msg import TFMessage
 
 
@@ -12,12 +14,15 @@ class LimoTfToOdom(Node):
         super().__init__('limo_tf_to_odom')
         self.declare_parameter('odom_frame', 'odom')
         self.declare_parameter('base_frame', 'base_footprint')
+        self.declare_parameter('input_tf_topic', 'tf')
         self.odom_frame = self.get_parameter('odom_frame').value
         self.base_frame = self.get_parameter('base_frame').value
+        self.input_tf_topic = self.get_parameter('input_tf_topic').value
         self.previous = None
 
         self.odom_pub = self.create_publisher(Odometry, 'odom', 10)
-        self.tf_sub = self.create_subscription(TFMessage, 'tf', self.on_tf, 50)
+        self.tf_broadcaster = TransformBroadcaster(self)
+        self.tf_sub = self.create_subscription(TFMessage, self.input_tf_topic, self.on_tf, 50)
 
     def on_tf(self, msg):
         for transform in msg.transforms:
@@ -43,6 +48,8 @@ class LimoTfToOdom(Node):
 
         if self.previous is not None:
             last_stamp, last_x, last_y, last_yaw = self.previous
+            if stamp <= last_stamp:
+                return
             dt = stamp - last_stamp
             if dt > 1e-6:
                 odom.twist.twist.linear.x = math.hypot(x - last_x, y - last_y) / dt
@@ -50,6 +57,14 @@ class LimoTfToOdom(Node):
 
         self.previous = (stamp, x, y, yaw)
         self.odom_pub.publish(odom)
+        self.publish_tf(transform)
+
+    def publish_tf(self, transform):
+        filtered_transform = TransformStamped()
+        filtered_transform.header = transform.header
+        filtered_transform.child_frame_id = transform.child_frame_id
+        filtered_transform.transform = transform.transform
+        self.tf_broadcaster.sendTransform(filtered_transform)
 
     @staticmethod
     def yaw_from_quaternion(q):
