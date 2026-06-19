@@ -28,7 +28,7 @@ def generate_launch_description():
 
             remappings=[
                 ("/scan", "/scan"),         # LIDAR en tu lista de tópicos
-                ("/odom", "/odometry")      # tu odom viene de /odometry
+                ("/odom", "/odom")
             ],
         ),
 
@@ -45,4 +45,3 @@ def generate_launch_description():
             ],
         )
     ])
-

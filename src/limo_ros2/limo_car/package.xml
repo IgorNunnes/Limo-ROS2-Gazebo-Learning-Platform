@@ -21,6 +21,11 @@
   <depend>gazebo</depend>
   <depend>libgazebo_ros</depend>
   <depend>rqt_robot_steering</depend>
+  <exec_depend>cartographer_ros</exec_depend>
+  <exec_depend>limo_description</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>rviz2</exec_depend>
   
   <export>
     <build_type>ament_cmake</build_type>

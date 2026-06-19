@@ -3,6 +3,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -20,9 +21,21 @@ def generate_launch_description():
 
     use_sim_time = LaunchConfiguration('use_sim_time')
     gz_args = LaunchConfiguration('gz_args')
+    rviz_enabled = LaunchConfiguration('rviz')
+    slam_enabled = LaunchConfiguration('slam')
+    rviz_config = LaunchConfiguration('rviz_config')
 
     # Integrando o cenário da arena Work (limo_atwork_educational.sdf)
     default_world = os.path.join(pkg_path, 'worlds', 'limo_atwork_educational.sdf')
+    default_rviz_config = os.path.join(
+        get_package_share_directory('limo_car'),
+        'rviz',
+        'work_scenario_navigation.rviz',
+    )
+    cartographer_config_dir = os.path.join(
+        get_package_share_directory('cartographer_limo'),
+        'config',
+    )
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -80,10 +93,61 @@ def generate_launch_description():
         ],
         remappings=[
             ('/model/limo/cmd_vel', '/cmd_vel'),
-            ('/model/limo/tf', '/tf'),
+            ('/model/limo/tf', '/gz_tf'),
             ('/world/limo_world/model/limo/joint_state', '/joint_states'),
         ],
         output='screen',
+    )
+
+    odom_from_tf = Node(
+        package='limo_description',
+        executable='limo_tf_to_odom.py',
+        output='screen',
+        parameters=[{
+            'odom_frame': 'odom',
+            'base_frame': 'base_footprint',
+            'input_tf_topic': 'gz_tf',
+            'use_sim_time': use_sim_time,
+        }],
+    )
+
+    cartographer = Node(
+        package='cartographer_ros',
+        executable='cartographer_node',
+        name='cartographer',
+        output='screen',
+        condition=IfCondition(slam_enabled),
+        parameters=[{'use_sim_time': use_sim_time}],
+        arguments=[
+            '-configuration_directory', cartographer_config_dir,
+            '-configuration_basename', 'limo.lua',
+        ],
+        remappings=[
+            ('/scan', '/scan'),
+            ('/odom', '/odom'),
+        ],
+    )
+
+    occupancy_grid = Node(
+        package='cartographer_ros',
+        executable='cartographer_occupancy_grid_node',
+        name='occupancy_grid',
+        output='screen',
+        condition=IfCondition(slam_enabled),
+        parameters=[
+            {'use_sim_time': use_sim_time},
+            {'resolution': 0.05},
+        ],
+    )
+
+    rviz = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        condition=IfCondition(rviz_enabled),
+        arguments=['-d', rviz_config],
+        parameters=[{'use_sim_time': use_sim_time}],
     )
 
     return LaunchDescription([
@@ -97,8 +161,27 @@ def generate_launch_description():
             default_value=['-r ', default_world],
             description='Arguments passed to Gazebo Sim / Ignition Fortress.',
         ),
+        DeclareLaunchArgument(
+            'slam',
+            default_value='true',
+            description='Start Cartographer SLAM and publish /map.',
+        ),
+        DeclareLaunchArgument(
+            'rviz',
+            default_value='true',
+            description='Start RViz with the work scenario navigation layout.',
+        ),
+        DeclareLaunchArgument(
+            'rviz_config',
+            default_value=default_rviz_config,
+            description='RViz config file.',
+        ),
         gazebo,
         robot_state_publisher,
         TimerAction(period=2.0, actions=[spawn_robot]),
         bridge,
+        odom_from_tf,
+        cartographer,
+        occupancy_grid,
+        rviz,
     ])
